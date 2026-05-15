@@ -17,8 +17,10 @@ class MainActivity : AppCompatActivity() {
     var recyclerView: RecyclerView? = null
     var menuBtn: ImageButton? = null
 
-    // adapter que liga os dados do Firestore ao RecyclerView
-    // é declarado aqui para poder ser acedido nos métodos onStart, onStop e onResume
+    /**
+     * Adapter que liga os dados do Firestore ao RecyclerView.
+     * É declarado aqui para poder ser acedido nos métodos do ciclo de vida (onStart, onStop e onResume).
+     */
     var noteAdapter: NoteAdapter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,6 +45,10 @@ class MainActivity : AppCompatActivity() {
         setupRecyclerView()
     }
 
+    /**
+     * Configura o RecyclerView conectando-o através da Query ao Firestore.
+     * Organiza as visualizações num Layout Manager e atribui-lhes o adapter apropriado.
+     */
     fun setupRecyclerView() {
         // cria uma query ao Firestore para obter as notas do utilizador atual
         // orderBy("timestamp", DESCENDING) ordena as notas da mais recente para a mais antiga
@@ -67,33 +73,37 @@ class MainActivity : AppCompatActivity() {
         recyclerView!!.adapter = noteAdapter
     }
 
-    // onStart é chamado quando a activity fica visível para o utilizador
-    // startListening() inicia a escuta de alterações no Firestore em tempo real
-    // ou seja, se uma nota for adicionada, editada ou apagada noutro dispositivo,
-    // a lista atualiza-se automaticamente sem precisar de recarregar a app
+    /**
+     * Invocado quando a activity fica visível para o utilizador.
+     * Inicia a escuta de alterações no Firestore em tempo real através do startListening().
+     * Caso uma nota sofra alterações, a lista é atualizada automaticamente em todos os dispositivos.
+     */
     override fun onStart() {
         super.onStart()
         noteAdapter!!.startListening()
     }
 
-    // onStop é chamado quando a activity fica invisível (ex: o utilizador saiu da app)
-    // stopListening() para a escuta de alterações no Firestore
-    // isto é importante para evitar atualizações desnecessárias quando a app está em background
-    // e para não desperdiçar recursos do dispositivo e da quota do Firestore
+    /**
+     * Invocado quando a activity fica invisível (ex: utilizador deitou a app para background).
+     * O stopListening() interrompe a escuta de alterações, preservando os recursos do dispositivo e as quotas do Firestore.
+     */
     override fun onStop() {
         super.onStop()
         noteAdapter!!.stopListening()
     }
 
-    // onResume é chamado quando a activity volta ao primeiro plano
-    // por exemplo, após o utilizador editar ou apagar uma nota e voltar à lista
-    // notifyDataSetChanged() informa o adapter que os dados podem ter mudado
-    // e que deve atualizar a lista para refletir as alterações mais recentes
+    /**
+     * Invocado quando a activity volta ao primeiro plano.
+     * Garante que o adapter é notificado e refresca a interface visual com quaisquer dados atualizados pendentes.
+     */
     override fun onResume() {
         super.onResume()
         noteAdapter!!.notifyDataSetChanged()
     }
 
+    /**
+     * Exibe o PopupMenu de propriedades extra ao pé do ícone/botão de menu superior.
+     */
     fun showMenu() {
         // PopupMenu mostra um menu de opções junto ao botão do menu
         val popupMenu = android.widget.PopupMenu(this@MainActivity, menuBtn)

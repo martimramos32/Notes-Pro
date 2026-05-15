@@ -15,7 +15,7 @@
         android:textStyle="bold"
         android:textColor="@color/black"/>
 
-    <!-- conteúdo da nota — mostra apenas 2 linhas com "..." no fim se for muito longo -->
+    <!-- conteúdo da nota -->
     <TextView
         android:id="@+id/note_content_text_view"
         android:layout_width="match_parent"
