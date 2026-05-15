@@ -5,6 +5,7 @@ import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.firebase.ui.firestore.FirestoreRecyclerAdapter
@@ -37,6 +38,7 @@ class NoteAdapter(
         val titleTextView: TextView = itemView.findViewById(R.id.note_title_text_view)
         val contentTextView: TextView = itemView.findViewById(R.id.note_content_text_view)
         val dateTextView: TextView = itemView.findViewById(R.id.note_date_text_view)
+        val noteImageView: ImageView = itemView.findViewById(R.id.note_image_view)
     }
 
     /**
@@ -72,6 +74,20 @@ class NoteAdapter(
         // ex: Timestamp(2024, 1, 15) -> "01/15/2024"
         holder.dateTextView.text = Utility.timestampToString(note.timestamp)
 
+        // Mostrar thumbnail da imagem se existir
+        val imageBase64 = note.imageBase64
+        if (!imageBase64.isNullOrEmpty()) {
+            val bitmap = ImageUtils.base64ToBitmap(imageBase64)
+            if (bitmap != null) {
+                holder.noteImageView.setImageBitmap(bitmap)
+                holder.noteImageView.visibility = View.VISIBLE
+            } else {
+                holder.noteImageView.visibility = View.GONE
+            }
+        } else {
+            holder.noteImageView.visibility = View.GONE
+        }
+
         // define o comportamento quando o utilizador clica numa nota
         holder.itemView.setOnClickListener {
             // cria um Intent para abrir o NoteDetailsActivity em modo de edição
@@ -84,6 +100,9 @@ class NoteAdapter(
             // obtém o ID do documento do Firestore para este item da lista
             // este ID é necessário para saber qual documento atualizar ou apagar no Firestore
             intent.putExtra("docId", snapshots.getSnapshot(position).id)
+
+            // passa a imagem Base64 (pode ser null se a nota não tem imagem)
+            intent.putExtra("imageBase64", note.imageBase64)
 
             // abre o NoteDetailsActivity com os dados da nota selecionada
             context.startActivity(intent)

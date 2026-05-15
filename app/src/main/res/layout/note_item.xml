@@ -8,6 +8,17 @@
     android:backgroundTint="@color/white"
     android:background="@drawable/rounded_corner">
 
+    <!-- imagem da nota (thumbnail) -->
+    <ImageView
+        android:id="@+id/note_image_view"
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:layout_marginBottom="8dp"
+        android:adjustViewBounds="true"
+        android:contentDescription="@string/image_preview"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
+
     <!-- título da nota -->
     <TextView
         android:id="@+id/note_title_text_view"

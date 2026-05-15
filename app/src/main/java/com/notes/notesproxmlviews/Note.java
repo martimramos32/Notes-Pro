@@ -6,6 +6,7 @@ public class Note {
     String title;
     String content;
     Timestamp timestamp;
+    String imageBase64;
 
     public Note() {
     }
@@ -32,5 +33,13 @@ public class Note {
 
     public void setTimestamp(Timestamp timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public String getImageBase64() {
+        return imageBase64;
+    }
+
+    public void setImageBase64(String imageBase64) {
+        this.imageBase64 = imageBase64;
     }
 }

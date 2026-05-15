@@ -26,4 +26,11 @@
     <string name="save_note">Save Note</string>
     <string name="add_new_note">Add New Note</string>
     <string name="edit_your_note">Edit your note</string>
+    <string name="add_image">Add Image</string>
+    <string name="remove_image">Remove Image</string>
+    <string name="image_preview">Image preview</string>
+    <string name="choose_image_source">Choose image source</string>
+    <string name="gallery">Gallery</string>
+    <string name="camera">Camera</string>
+    <string name="camera_icon">Camera icon</string>
 </resources>
