@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.firebase.ui.firestore.FirestoreRecyclerOptions
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.Query
 
 class MainActivity : AppCompatActivity() {
@@ -105,8 +106,22 @@ class MainActivity : AppCompatActivity() {
      * Exibe o PopupMenu de propriedades extra ao pé do ícone/botão de menu superior.
      */
     fun showMenu() {
-        // PopupMenu mostra um menu de opções junto ao botão do menu
         val popupMenu = android.widget.PopupMenu(this@MainActivity, menuBtn)
+        //Adiciona a opção "Logout" à lista do menu
+        popupMenu.menu.add("Logout")
         popupMenu.show()
+        popupMenu.setOnMenuItemClickListener { menuItem ->
+            if (menuItem.title == "Logout") {
+                // Termina a sessão do utilizador
+                FirebaseAuth.getInstance().signOut()
+                // Vai para o ecrã de início de sessão (LoginActivity)
+                val intent = Intent(this@MainActivity, LoginActivity::class.java)
+                startActivity(intent)
+                finish()
+                true
+            } else {
+                false
+            }
+        }
     }
 }
