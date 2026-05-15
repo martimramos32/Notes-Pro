@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -19,14 +20,34 @@
         android:scaleType="centerCrop"
         android:visibility="gone" />
 
-    <!-- título da nota -->
-    <TextView
-        android:id="@+id/note_title_text_view"
+    <!-- linha com título e ícone de pin -->
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:textColor="@color/black"/>
+        android:layout_height="wrap_content">
+
+        <!-- título da nota -->
+        <TextView
+            android:id="@+id/note_title_text_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_toStartOf="@+id/pin_icon_view"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/black"/>
+
+        <!-- ícone de pin (visível apenas quando fixada) -->
+        <ImageView
+            android:id="@+id/pin_icon_view"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:src="@drawable/ic_push_pin_filled"
+            android:contentDescription="@string/pin_note"
+            android:visibility="gone"
+            app:tint="@color/my_primary"/>
+
+    </RelativeLayout>
 
     <!-- conteúdo da nota -->
     <TextView
@@ -38,13 +59,34 @@
         android:ellipsize="end"
         android:layout_marginTop="4dp"/>
 
-    <!-- data da nota formatada como MM/DD/YYYY -->
-    <TextView
-        android:id="@+id/note_date_text_view"
+    <!-- linha inferior: data + ícone de lembrete -->
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="12sp"
-        android:textColor="@color/black"
-        android:layout_marginTop="4dp"/>
+        android:layout_marginTop="4dp">
+
+        <!-- data da nota formatada como MM/DD/YYYY -->
+        <TextView
+            android:id="@+id/note_date_text_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textColor="@color/black"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"/>
+
+        <!-- ícone de lembrete (sino) — visível quando tem lembrete agendado -->
+        <ImageView
+            android:id="@+id/reminder_icon_view"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:src="@drawable/ic_notifications"
+            android:contentDescription="@string/set_reminder"
+            android:visibility="gone"
+            app:tint="@color/my_primary"/>
+
+    </RelativeLayout>
 
 </LinearLayout>

@@ -7,6 +7,8 @@ public class Note {
     String content;
     Timestamp timestamp;
     String imageBase64;
+    int pinOrder;       // 1 = fixada no topo, 0 = normal
+    long reminderTimestamp; // epoch ms; 0 = sem lembrete
 
     public Note() {
     }
@@ -41,5 +43,21 @@ public class Note {
 
     public void setImageBase64(String imageBase64) {
         this.imageBase64 = imageBase64;
+    }
+
+    public int getPinOrder() {
+        return pinOrder;
+    }
+
+    public void setPinOrder(int pinOrder) {
+        this.pinOrder = pinOrder;
+    }
+
+    public long getReminderTimestamp() {
+        return reminderTimestamp;
+    }
+
+    public void setReminderTimestamp(long reminderTimestamp) {
+        this.reminderTimestamp = reminderTimestamp;
     }
 }

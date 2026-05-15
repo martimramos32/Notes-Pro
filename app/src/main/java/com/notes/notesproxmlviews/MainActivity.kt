@@ -1,6 +1,9 @@
 package com.notes.notesproxmlviews
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageButton
@@ -28,48 +31,135 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // inicializa as views do layout
+        // Criar o canal de notificações (obrigatório Android 8+, inócuo em versões anteriores)
+        createNotificationChannel()
+
+        // Inicializar views do layout
         addNoteBtn = findViewById(R.id.add_note_btn)
         recyclerView = findViewById(R.id.recyler_view)
         menuBtn = findViewById(R.id.menu_btn)
 
-        // quando o utilizador clica no botão "+", abre o NoteDetailsActivity para criar uma nova nota
+        // Quando o utilizador clica no botão "+", abre o NoteDetailsActivity para criar uma nova nota
         addNoteBtn!!.setOnClickListener {
             startActivity(Intent(this@MainActivity, NoteDetailsActivity::class.java))
         }
 
-        // quando o utilizador clica no botão do menu, mostra o menu de opções
+        // Quando o utilizador clica no botão do menu, mostra o menu de opções
         menuBtn!!.setOnClickListener { showMenu() }
 
-        // configura o RecyclerView com os dados do Firestore
-        // é chamado no onCreate para que a lista seja carregada quando a activity é criada
+        // Migrar notas antigas que não têm o campo pinOrder (criadas antes da funcionalidade Pin)
+        // Esta migração só precisa de correr uma vez — usa SharedPreferences como flag de controlo
+        migrateExistingNotes()
+
+        // Configura o RecyclerView com os dados do Firestore
         setupRecyclerView()
     }
 
     /**
+     * Migração única de dados: adiciona os campos pinOrder=0 e reminderTimestamp=0
+     * a todos os documentos do Firestore que ainda não os têm.
+     *
+     * PORQUÊ É NECESSÁRIO:
+     * O Firestore, ao fazer .orderBy("pinOrder"), exclui automaticamente todos os documentos
+     * que não têm esse campo — mesmo que o valor padrão no Java seja 0.
+     * As notas criadas antes de adicionarmos o campo "pinOrder" ficam "invisíveis" para a query.
+     *
+     * COMO FUNCIONA:
+     * - Vai buscar todos os documentos da coleção de notas do utilizador
+     * - Para cada documento sem "pinOrder", faz um update a adicionar pinOrder=0 e reminderTimestamp=0
+     * - Usa SharedPreferences para garantir que esta migração só corre uma única vez
+     */
+    private fun migrateExistingNotes() {
+        val prefs = getSharedPreferences("app_migration", MODE_PRIVATE)
+        val migrationDone = prefs.getBoolean("pinOrder_migration_done", false)
+
+        // Se a migração já foi feita anteriormente, não precisamos de correr de novo
+        if (migrationDone) return
+
+        Utility.getCollectionReferenceForNotes().get()
+            .addOnSuccessListener { snapshot ->
+                if (snapshot.isEmpty) {
+                    // Sem notas para migrar — marcar como concluído
+                    prefs.edit().putBoolean("pinOrder_migration_done", true).apply()
+                    return@addOnSuccessListener
+                }
+
+                var pendingUpdates = snapshot.documents.size
+                var completedUpdates = 0
+
+                for (document in snapshot.documents) {
+                    // Verificar se o campo pinOrder já existe no documento do Firestore
+                    // (é diferente do valor default do Java — pode não existir de todo)
+                    if (!document.contains("pinOrder")) {
+                        // Adicionar os campos em falta sem apagar os restantes dados da nota
+                        document.reference.update(
+                            "pinOrder", 0,
+                            "reminderTimestamp", 0L
+                        ).addOnCompleteListener {
+                            completedUpdates++
+                            // Quando todos os updates estiverem completos, marcar migração como feita
+                            if (completedUpdates >= pendingUpdates) {
+                                prefs.edit().putBoolean("pinOrder_migration_done", true).apply()
+                                android.util.Log.d("Migration", "pinOrder migration complete: $completedUpdates documents updated")
+                            }
+                        }
+                    } else {
+                        // Documento já tem o campo — contar como "concluído"
+                        completedUpdates++
+                        if (completedUpdates >= pendingUpdates) {
+                            prefs.edit().putBoolean("pinOrder_migration_done", true).apply()
+                        }
+                    }
+                }
+            }
+            .addOnFailureListener { e ->
+                android.util.Log.e("Migration", "Failed to migrate notes: ${e.message}")
+            }
+    }
+
+
+    /**
+     * Cria o Notification Channel para os lembretes.
+     * Obrigatório em Android 8.0 (API 26)+. Em versões anteriores não tem efeito.
+     * Deve ser chamado o mais cedo possível (onCreate), pois pode ser chamado várias
+     * vezes sem problemas — o sistema ignora criações duplicadas.
+     */
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channelId = getString(R.string.reminder_notification_channel_id)
+            val channelName = getString(R.string.reminder_notification_channel_name)
+            val channelDesc = getString(R.string.reminder_notification_channel_desc)
+            val importance = NotificationManager.IMPORTANCE_HIGH
+
+            val channel = NotificationChannel(channelId, channelName, importance).apply {
+                description = channelDesc
+                enableLights(true)
+                enableVibration(true)
+            }
+
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    /**
      * Configura o RecyclerView conectando-o através da Query ao Firestore.
-     * Organiza as visualizações num Layout Manager e atribui-lhes o adapter apropriado.
+     * Ordena primeiro pelas notas fixadas (pinOrder DESC) e depois pela mais recente (timestamp DESC).
+     *
+     * NOTA: Esta query com dois campos requer um índice composto no Firestore.
+     * Ao correr a app pela primeira vez, o Logcat mostrará um link direto para criar
+     * o índice automaticamente na consola Firebase — basta clicar nesse link.
      */
     fun setupRecyclerView() {
-        // cria uma query ao Firestore para obter as notas do utilizador atual
-        // orderBy("timestamp", DESCENDING) ordena as notas da mais recente para a mais antiga
-        // ou seja, a última nota criada aparece sempre no topo da lista
         val query: Query = Utility.getCollectionReferenceForNotes()
+            .orderBy("pinOrder", Query.Direction.DESCENDING)
             .orderBy("timestamp", Query.Direction.DESCENDING)
 
-        // FirestoreRecyclerOptions define como o adapter vai carregar os dados do Firestore
-        // setQuery: define a query a usar e o tipo de dados (Note::class.java)
-        // o adapter vai converter automaticamente cada documento do Firestore num objeto Note
         val options = FirestoreRecyclerOptions.Builder<Note>()
             .setQuery(query, Note::class.java)
             .build()
 
-        // LinearLayoutManager organiza os itens do RecyclerView numa lista vertical
-        // é o layout manager mais simples e adequado para uma lista de notas
         recyclerView!!.layoutManager = LinearLayoutManager(this)
-
-        // cria o NoteAdapter com as opções do Firestore e o contexto da activity
-        // e liga-o ao RecyclerView para que os dados sejam mostrados na lista
         noteAdapter = NoteAdapter(options, this)
         recyclerView!!.adapter = noteAdapter
     }
@@ -77,7 +167,6 @@ class MainActivity : AppCompatActivity() {
     /**
      * Invocado quando a activity fica visível para o utilizador.
      * Inicia a escuta de alterações no Firestore em tempo real através do startListening().
-     * Caso uma nota sofra alterações, a lista é atualizada automaticamente em todos os dispositivos.
      */
     override fun onStart() {
         super.onStart()
@@ -85,8 +174,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Invocado quando a activity fica invisível (ex: utilizador deitou a app para background).
-     * O stopListening() interrompe a escuta de alterações, preservando os recursos do dispositivo e as quotas do Firestore.
+     * Invocado quando a activity fica invisível.
+     * O stopListening() interrompe a escuta, preservando recursos e quotas do Firestore.
      */
     override fun onStop() {
         super.onStop()
@@ -95,7 +184,7 @@ class MainActivity : AppCompatActivity() {
 
     /**
      * Invocado quando a activity volta ao primeiro plano.
-     * Garante que o adapter é notificado e refresca a interface visual com quaisquer dados atualizados pendentes.
+     * Garante que a lista é refrescada com dados atualizados.
      */
     override fun onResume() {
         super.onResume()
@@ -103,18 +192,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Exibe o PopupMenu de propriedades extra ao pé do ícone/botão de menu superior.
+     * Exibe o PopupMenu de opções ao pé do botão de menu.
      */
     fun showMenu() {
         val popupMenu = android.widget.PopupMenu(this@MainActivity, menuBtn)
-        //Adiciona a opção "Logout" à lista do menu
         popupMenu.menu.add("Logout")
         popupMenu.show()
         popupMenu.setOnMenuItemClickListener { menuItem ->
             if (menuItem.title == "Logout") {
-                // Termina a sessão do utilizador
                 FirebaseAuth.getInstance().signOut()
-                // Vai para o ecrã de início de sessão (LoginActivity)
                 val intent = Intent(this@MainActivity, LoginActivity::class.java)
                 startActivity(intent)
                 finish()

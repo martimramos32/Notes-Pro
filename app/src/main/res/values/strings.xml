@@ -33,4 +33,14 @@
     <string name="gallery">Gallery</string>
     <string name="camera">Camera</string>
     <string name="camera_icon">Camera icon</string>
+    <string name="pin_note">Pin note</string>
+    <string name="unpin_note">Unpin note</string>
+    <string name="set_reminder">Set Reminder</string>
+    <string name="reminder_set">Reminder: %1$s</string>
+    <string name="cancel_reminder">Cancel reminder</string>
+    <string name="reminder_notification_channel_id">notes_reminders</string>
+    <string name="reminder_notification_channel_name">Note Reminders</string>
+    <string name="reminder_notification_channel_desc">Notifications for scheduled note reminders</string>
+    <string name="open_note">Open note</string>
+    <string name="reminder_fired">Reminder for your note</string>
 </resources>
